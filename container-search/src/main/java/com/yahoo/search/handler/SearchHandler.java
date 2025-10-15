@@ -114,9 +114,14 @@ public class SearchHandler extends LoggingRequestHandler {
                          ComponentRegistry<Embedder> embedders,
                          ExecutionFactory executionFactory,
                          ZoneInfo zoneInfo) {
-        this(metric, threadpool.executor(), queryProfileRegistry, embedders, executionFactory,
+        this(metric,
+             threadpool.executor(),
+             queryProfileRegistry,
+             embedders,
+             executionFactory,
              config.numQueriesToTraceOnDebugAfterConstruction(),
-                config.hostResponseHeaderKey().isEmpty() ? Optional.empty() : Optional.of(config.hostResponseHeaderKey()),
+             config.hostResponseHeaderKey().isEmpty() ? Optional.empty() : Optional.of(config.hostResponseHeaderKey()),
+             config.warmupSearchHandler(),
              zoneInfo);
     }
 
@@ -127,6 +132,7 @@ public class SearchHandler extends LoggingRequestHandler {
                           ExecutionFactory executionFactory,
                           long numQueriesToTraceOnDebugAfterStartup,
                           Optional<String> hostResponseHeaderKey,
+                          Boolean warmupSearchHandler,
                           ZoneInfo zoneInfo) {
         super(executor, metric, true);
 
@@ -142,7 +148,7 @@ public class SearchHandler extends LoggingRequestHandler {
         metric.set(SEARCH_CONNECTIONS, 0.0d, null);
         this.zoneInfo = zoneInfo;
 
-        warmup();
+        warmup(warmupSearchHandler);
     }
 
     Metric metric() { return metric; }
@@ -154,19 +160,23 @@ public class SearchHandler extends LoggingRequestHandler {
         return Integer.MAX_VALUE; // assume unbound
     }
 
-    private void warmup() {
-        try {
-            handle(HttpRequest.createTestRequest("/search/" +
-                                                 "?timeout=2s" +
-                                                 "&ranking.profile=unranked" +
-                                                 "&warmup=true" +
-                                                 "&metrics.ignore=true" +
-                                                 "&yql=select+*+from+sources+*+where+true+limit+0;",
-                                                 com.yahoo.jdisc.http.HttpRequest.Method.GET,
-                                                 nullInputStream()));
-        }
-        catch (RuntimeException e) {
-            log.log(Level.INFO, "Exception warming up search handler", e);
+    private void warmup(Boolean enabled) {
+        if (enabled) {
+            try {
+                handle(HttpRequest.createTestRequest("/search/" +
+                                "?timeout=2s" +
+                                "&ranking.profile=unranked" +
+                                "&warmup=true" +
+                                "&metrics.ignore=true" +
+                                "&yql=select+*+from+sources+*+where+true+limit+0;",
+                        com.yahoo.jdisc.http.HttpRequest.Method.GET,
+                        nullInputStream()));
+            }
+            catch (RuntimeException e) {
+                log.log(Level.INFO, "Exception warming up search handler", e);
+            }
+        } else {
+            log.log(Level.FINE, "Search handler warmup is disabled");
         }
     }
 
