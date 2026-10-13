@@ -9,6 +9,7 @@ import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonFactoryBuilder;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.StreamReadConstraints;
+import com.fasterxml.jackson.core.StreamWriteFeature;
 import com.fasterxml.jackson.core.TreeNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.cbor.CBORFactory;
@@ -205,7 +206,8 @@ public class JsonRenderer extends AsynchronousSectionedRenderer<Result> {
 
     private static JsonFactory createJsonFactory() {
         return Jackson.createMapper(new JsonFactoryBuilder()
-                .streamReadConstraints(StreamReadConstraints.builder().maxStringLength(Integer.MAX_VALUE).build()))
+                .streamReadConstraints(StreamReadConstraints.builder().maxStringLength(Integer.MAX_VALUE).build())
+                .enable(StreamWriteFeature.USE_FAST_DOUBLE_WRITER))
                 .disable(FLUSH_AFTER_WRITE_VALUE).getFactory();
     }
 
